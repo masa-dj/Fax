@@ -38,7 +38,7 @@
             // 
             // button1
             // 
-            button1.Location = new Point(352, 113);
+            button1.Location = new Point(105, 42);
             button1.Name = "button1";
             button1.Size = new Size(150, 46);
             button1.TabIndex = 0;
@@ -48,16 +48,16 @@
             // 
             // pictureBox1
             // 
-            pictureBox1.Location = new Point(102, 193);
+            pictureBox1.Location = new Point(169, 211);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(678, 439);
-            pictureBox1.SizeMode = PictureBoxSizeMode.AutoSize;
+            pictureBox1.Size = new Size(553, 335);
+            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox1.TabIndex = 1;
             pictureBox1.TabStop = false;
             // 
             // button2
             // 
-            button2.Location = new Point(341, 681);
+            button2.Location = new Point(304, 42);
             button2.Name = "button2";
             button2.Size = new Size(150, 46);
             button2.TabIndex = 2;
@@ -67,9 +67,9 @@
             // 
             // pictureBox2
             // 
-            pictureBox2.Location = new Point(1125, 193);
+            pictureBox2.Location = new Point(835, 186);
             pictureBox2.Name = "pictureBox2";
-            pictureBox2.Size = new Size(744, 439);
+            pictureBox2.Size = new Size(630, 360);
             pictureBox2.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox2.TabIndex = 3;
             pictureBox2.TabStop = false;
@@ -78,7 +78,7 @@
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(2228, 882);
+            ClientSize = new Size(1647, 795);
             Controls.Add(pictureBox2);
             Controls.Add(button2);
             Controls.Add(pictureBox1);
@@ -89,7 +89,6 @@
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
             ResumeLayout(false);
-            PerformLayout();
         }
 
         #endregion

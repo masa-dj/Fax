@@ -77,7 +77,7 @@ namespace Fax
 
         private const string EOL = "000000000001";
         //fax radi sa crnim i belim pikselima iskljucivo, ppa se slika pojadnostavljenja radi konvertuje u black and white
-        private Bitmap toBW(Bitmap source)
+        public static Bitmap toBW(Bitmap source)
         {
             Bitmap BWbitmap = new Bitmap(source.Width, source.Height);
             for (int x = 0; x < source.Width; x++)
@@ -102,37 +102,44 @@ namespace Fax
         public string scanDocument(int[,] mat)
         {
             string code = "";
+            bool first = true;
             for(int i=0; i<mat.GetLength(0); i++) //za redove
             {
-                int br = 1;
+                int br = 0;
                 int j = 0;
-                while(j < mat.GetLength(1)-1)
+                while(j <= mat.GetLength(1)-2)
                 {
 
                     if (mat[i, j] == mat[i, j + 1]) br++;
                     else
                     {
                         //naisli smo na promenu
+                        br++;
                         if (mat[i, j] == 0) code += findCode(br, WhiteTerminatingCodes, WhiteMakeupCodes);
                         else code += findCode(br, BlackTerminatingCodes, BlackMakeupCodes);
-                        br = 1;
+                        br = 0;
+                       
                     }
                     j++;
                 }
                 if(j== mat.GetLength(1) - 1)
                 {
                     //poslednji element
-                    if (mat[i, j-1] == mat[i, j])
+                    if (mat[i, j - 1] == mat[i, j])
                     {
                         br++;
                         if (mat[i, j] == 0) code += findCode(br, WhiteTerminatingCodes, WhiteMakeupCodes);
                         else code += findCode(br, BlackTerminatingCodes, BlackMakeupCodes);
                     }
-                    if (mat[i, j] == 0) code+= findCode(1, WhiteTerminatingCodes, WhiteMakeupCodes);
-                    else code += findCode(1, BlackTerminatingCodes, BlackMakeupCodes);
+                    else
+                    {
+                        if (mat[i, j] == 0) code += findCode(1, WhiteTerminatingCodes, WhiteMakeupCodes);
+                        else code += findCode(1, BlackTerminatingCodes, BlackMakeupCodes);
+                    }
                 }
-                br = 1;
+                
                 code += EOL;
+                
             }
             return code;
         }
@@ -144,7 +151,7 @@ namespace Fax
             }
             else
             {
-                int makeupPart = number / 64;
+                int makeupPart = number / 64 *64;
                 int terminatingPart = number % 64;
                 return makeup[makeupPart] + terminating[terminatingPart];
             }
@@ -157,10 +164,11 @@ namespace Fax
         int index = 0;
         string line = "";
         int r = 0;
+        int s = 0;
             while (r < rows)
             {
                 line = "";
-                while (code.Substring(index, 12) != EOL)
+                while (index + 12 <= code.Length && code.Substring(index, 12) != EOL)
                 {
                     line = line + code[index];
                     index++;
@@ -171,7 +179,7 @@ namespace Fax
                 bool isWhite = true;
                 int local = 0;
                 string[] tmp = new string[50];
-                int s = 0;
+                
 
                 while (local < line.Length)
                 {
@@ -188,8 +196,8 @@ namespace Fax
                         if (terminatingCodes.ContainsValue(currentSequence))
                         {
                             sequenceFound = true;
-                            tmp[s] = currentSequence;
-                            s++;
+                            //tmp[s] = currentSequence;
+                            //s++;
                         }
                         else
                         {
@@ -213,53 +221,35 @@ namespace Fax
                                 {
                                     // Switch to black and backtrack
                                     isWhite = false;
-                                    //col = previousCol;
-                                    //row = previousRow;
+                                    row++;
+                                    col = 0;
                                 }
                                 else
                                 {
                                     // Update matrix based on whether it's white or black
-                                    if (isWhite)
+                                    for (int i = 0; i < entry.Key; i++)
                                     {
-                                        // White sequence, add zeroes
-                                        for (int i = 0; i < entry.Key; i++)
-                                        {
-                                            mat[row, col] = 0;
-                                            col++;
-                                            if (col >= cols)
-                                            {
-                                                col = 0;
-                                                row++;
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        // Black sequence, add ones
-                                        for (int i = 0; i < entry.Key; i++)
-                                        {
-                                            mat[row, col] = 1;
-                                            col++;
-                                            if (col >= cols)
-                                            {
-                                                col = 0;
-                                                row++;
-                                            }
-                                        }
-                                    }
+                                        if (row >= rows) break; // Prevent exceeding row bounds
 
-                                    // Move to the next position
-                                    local += sequenceLength;
-                                    isWhite = !isWhite; // Switch colors
+                                        mat[row, col] = isWhite ? 0 : 1;
+                                        col++;
+                                        if (col >= cols)
+                                        {
+                                            col = 0;
+                                            row++;
+                                            if (row >= rows) break; // Prevent exceeding row bounds
+                                        }
+                                    }
                                 }
-
+                                local += sequenceLength;
+                                isWhite = !isWhite; // Switch colors
                                 break;
                             }
                         }
                     }
                     else
                     {
-                        // If sequence not found, switch to the other color and continue
+                        break;
                         // isWhite = !isWhite;
                     }
                 }
@@ -269,170 +259,7 @@ namespace Fax
         return mat;
     }
         
-        public string sendFax(Bitmap source)
-        {
-            Bitmap bitmap = toBW(source);
-            var encoded = new StringBuilder();
-            int height = bitmap.Height;
-            int width = bitmap.Width;
-
-            for (int i = 0; i < height; i++)
-            {
-                int runLength = 0;
-                int currentColor = 0; // False for white, True for black
-
-                for (int j = 0; j < width; j++)
-                {
-                    Color c= bitmap.GetPixel(j,i);
-                    int b = c.R;
-                    if (b == currentColor)
-                    {
-                        runLength++;
-                    }
-                    else
-                    {
-                        // Encode the run
-                        if (currentColor==1)
-                        {
-                            // Encode black run
-                            EncodeRun(encoded, runLength, BlackTerminatingCodes, BlackMakeupCodes);
-                        }
-                        else
-                        {
-                            // Encode white run
-                            EncodeRun(encoded, runLength, WhiteTerminatingCodes, WhiteMakeupCodes);
-                        }
-
-                        // Switch color and reset run length
-                        currentColor = (currentColor+1)%2;
-                        runLength = 1;
-                    }
-                }
-
-                // Encode the last run in the row
-                if (currentColor == 1)
-                {
-                    // Encode black run
-                    EncodeRun(encoded, runLength, BlackTerminatingCodes, BlackMakeupCodes);
-                }
-                else
-                {
-                    // Encode white run
-                    EncodeRun(encoded, runLength, WhiteTerminatingCodes, WhiteMakeupCodes);
-                }
-
-                // Append End of Line (EOL)
-                encoded.Append("000000000001");
-            }
-
-            return encoded.ToString();
-        }
-
-        private void EncodeRun(StringBuilder encoded, int runLength, Dictionary<int, string> terminatingCodes, Dictionary<int, string> makeupCodes)
-        {
-            while (runLength >= 64)
-            {
-                int makeupLength = (runLength / 64) * 64;
-                encoded.Append(makeupCodes[makeupLength]);
-                runLength -= makeupLength;
-            }
-            if (runLength > 0)
-            {
-                encoded.Append(terminatingCodes[runLength]);
-            }
-        }
-        public bool[,] DecodeBitmap(string encodedBitmap, int width, int height)
-        {
-            bool[,] bitmap = new bool[height, width];
-            int currentRow = 0;
-            int currentColumn = 0;
-
-            // Iterate through the encoded bitmap
-            for (int i = 0; i < encodedBitmap.Length;)
-            {
-                // Search for End of Line (EOL) code
-                if (encodedBitmap.Substring(i, 12) == "000000000001")
-                {
-                    // Move to the next row
-                    currentRow++;
-                    currentColumn = 0;
-                    i += 12; // Skip EOL code
-                    continue;
-                }
-
-                // Check for black run
-                if (encodedBitmap[i] == '1')
-                {
-                    int runLength = DecodeRunLength(encodedBitmap.Substring(i), BlackTerminatingCodes, BlackMakeupCodes);
-                    for (int j = 0; j < runLength; j++)
-                    {
-                        bitmap[currentRow, currentColumn++] = true; // Set black pixel
-                        if (currentColumn >= width)
-                        {
-                            currentColumn = 0; // Move to the next row if at the end of a row
-                            currentRow++;
-                        }
-                    }
-                }
-                else // White run
-                {
-                    int runLength = DecodeRunLength(encodedBitmap.Substring(i), WhiteTerminatingCodes, WhiteMakeupCodes);
-                    for (int j = 0; j < runLength; j++)
-                    {
-                        bitmap[currentRow, currentColumn++] = false; // Set white pixel
-                        if (currentColumn >= width)
-                        {
-                            currentColumn = 0; // Move to the next row if at the end of a row
-                            currentRow++;
-                        }
-                    }
-                }
-
-                // Move to the next run in the encoded bitmap
-                i += FindNextRunLength(encodedBitmap.Substring(i));
-            }
-
-            return bitmap;
-        }
-
-        private int FindNextRunLength(string encodedSubstring)
-        {
-            // Iterate through the encoded string to find the next run length
-            int i = 0;
-            while (i < encodedSubstring.Length && encodedSubstring[i] == '0')
-            {
-                i++;
-            }
-            while (i < encodedSubstring.Length && encodedSubstring[i] == '1')
-            {
-                i++;
-            }
-            return i;
-        }
-
-        private int DecodeRunLength(string encodedSubstring, Dictionary<int, string> terminatingCodes, Dictionary<int, string> makeupCodes)
-        {
-            // Try to match the encoded substring with makeup codes first
-            foreach (var makeupCode in makeupCodes)
-            {
-                if (encodedSubstring.StartsWith(makeupCode.Value))
-                {
-                    return makeupCode.Key + DecodeRunLength(encodedSubstring.Substring(makeupCode.Value.Length), terminatingCodes, makeupCodes);
-                }
-            }
-
-            // If no makeup code matches, try to match with terminating codes
-            foreach (var terminatingCode in terminatingCodes)
-            {
-                if (encodedSubstring.StartsWith(terminatingCode.Value))
-                {
-                    return terminatingCode.Key;
-                }
-            }
-
-            // If no match found, return 0
-            return 0;
-        }
+       
 
     }
 }
