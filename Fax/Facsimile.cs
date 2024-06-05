@@ -34,15 +34,12 @@ namespace Fax
         private static readonly Dictionary<int, string> WhiteMakeupCodes = new Dictionary<int, string>
         {
             { 64, "11011" }, { 128, "10010" }, { 192, "010111" }, { 256, "0110111" },
-            { 320, "0011011" }, { 384, "0100111" }, { 448, "0110010" }, { 512, "0110110" },
-            { 576, "010000" }, { 640, "0000110" }, { 704, "0001100" }, { 768, "011000" },
-            { 832, "0000100" }, { 896, "0000111" }, { 960, "0001000" }, { 1024, "0001010" },
-            { 1088, "0001011" }, { 1152, "0001101" }, { 1216, "0001110" }, { 1280, "0010000" },
-            { 1344, "0010001" }, { 1408, "0010010" }, { 1472, "0010011" }, { 1536, "0010100" },
-            { 1600, "0010101" }, { 1664, "0010110" }, { 1728, "0010111" }, 
-            // Additional codes for higher multiples (not strictly part of standard but for completeness)
-            { 1792, "00000001000" }, { 1856, "00000001100" }, { 1920, "00000001101" }
-        };
+            { 320, "00110110" }, { 384, "00110111" }, { 448, "01100100" }, { 512, "01100101" },
+            { 576, "01101000" }, { 640, "01100111" }, { 704, "011001100" }, { 768, "011001101" },
+            { 832, "011010010" }, { 896, "011010011" }, { 960, "011010100" }, { 1024, "011010101" },
+            { 1088, "011010110" }, { 1152, "011010111" }, { 1216, "011011000" }, { 1280, "011011001" },
+            { 1344, "011011010" }, { 1408, "011011011" }, { 1472, "010011000" }, { 1536, "010011001" },
+            { 1600, "010011010" }, { 1664, "011000" }, { 1728, "010011011" }};
 
         private static readonly Dictionary<int, string> BlackTerminatingCodes = new Dictionary<int, string>
         {
@@ -66,15 +63,18 @@ namespace Fax
         private static readonly Dictionary<int, string> BlackMakeupCodes = new Dictionary<int, string>
         {
             { 64, "0000001111" }, { 128, "000011001000" }, { 192, "000011001001" }, { 256, "000001011011" },
-            { 320, "00000011001" }, { 384, "00000011010" }, { 448, "00000011011" }, { 512, "00000011100" },
-            { 576, "00000011101" }, { 640, "00000011110" }, { 704, "00000011111" }, { 768, "00001100000" },
-            { 832, "00001100001" }, { 896, "00001100010" }, { 960, "00001100011" }, { 1024, "00000101100" },
-            { 1088, "000000100101" }, { 1152, "000000100110" }, { 1216, "000000100111" }, { 1280, "000000101000" },
-            { 1344, "000000101001" }, { 1408, "000000101010" }, { 1472, "000000101011" }, { 1536, "000000101100" },
-            { 1600, "000000101101" }, { 1664, "000000101110" }, { 1728, "000000101111" }, { 1792, "000000110000" },
-            { 1856, "000000110001" }, { 1920, "000000110010" }
-        };
-
+            { 320, "000000110011" }, { 384, "000000110100" }, { 448, "000000110101" }, { 512, "0000001101100" },
+            { 576, "0000001101101" }, { 640, "0000001001010" }, { 704, "0000001001011" }, { 768, "0000001001100" },
+            { 832, "0000001001101" }, { 896, "0000001110010" }, { 960, "0000001110011" }, { 1024, "0000001110100" },
+            { 1088, "0000001110101" }, { 1152, "0000001110110" }, { 1216, "0000001110111" }, { 1280, "0000001010010" },
+            { 1344, "0000001010011" }, { 1408, "0000001010100" }, { 1472, "0000001010101" }, { 1536, "0000001011010" },
+            { 1600, "0000001011011" }, { 1664, "0000001100100" }, { 1728, "0000001100101" }};
+        private static readonly Dictionary<int, string> BigCodes = new Dictionary<int, string>
+              {
+            { 1792, "00000001000" }, { 1856, "00000001100" }, { 1920, "00000001101" }, { 1984, "000000010010" },
+            { 2048, "000000010011" }, { 2112, "000000010100" }, { 2176, "000000010101" }, { 2240, "000000010110" },
+            { 2304, "000000010111" }, { 2368, "000000011100" }, { 2432, "000000011101" }, { 2496, "000000011110" },
+            { 2560, "000000011111" }};
         private const string EOL = "000000000001";
         //fax radi sa crnim i belim pikselima iskljucivo, ppa se slika pojadnostavljenja radi konvertuje u black and white
         public static Bitmap toBW(Bitmap source)
@@ -102,7 +102,7 @@ namespace Fax
         public string scanDocument(int[,] mat)
         {
             string code = "";
-            bool first = true;
+            //bool first = true;
             for(int i=0; i<mat.GetLength(0); i++) //za redove
             {
                 int br = 0;
@@ -159,107 +159,138 @@ namespace Fax
 
         public int[,] readFax(string code, int rows, int cols)
     {
-        int[,] mat = new int[rows, cols];
-        int row = 0, col = 0;
-        int index = 0;
-        string line = "";
-        int r = 0;
-        int s = 0;
-            while (r < rows)
+
+            //lukin
+
+            int[,] mat = new int[rows, cols];
+            int row = 0, col = 0;
+            int index = 0;
+            int r = 0;
+
+            Dictionary<string, int> whiteTerminatingCodes = WhiteTerminatingCodes.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+            Dictionary<string, int> blackTerminatingCodes = BlackTerminatingCodes.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+            Dictionary<string, int> whiteMakeupCodes = WhiteMakeupCodes.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+            Dictionary<string, int> blackMakeupCodes = BlackMakeupCodes.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+            Dictionary<string, int> bigCodes = BigCodes.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+
+            while (r < rows && index < code.Length)
             {
-                line = "";
-                while (index + 12 <= code.Length && code.Substring(index, 12) != EOL)
-                {
-                    line = line + code[index];
-                    index++;
-                }
-                index += 12;
-                
-                // Variables to keep track of decoding progress
-                bool isWhite = true;
+                int lineEndIndex = code.IndexOf(EOL, index);
+                if (lineEndIndex == -1) break;
+
+                ReadOnlySpan<char> line = code.AsSpan(index, lineEndIndex - index);
+                index = lineEndIndex + 12;
+
                 int local = 0;
-                string[] tmp = new string[50];
-                
+                bool isWhite = true;
+                bool wasMakeup = false;
+                bool wasBig = false;
 
                 while (local < line.Length)
                 {
-                    // Choose the appropriate dictionary based on color
-                    Dictionary<int, string> terminatingCodes = isWhite ? WhiteTerminatingCodes : BlackTerminatingCodes;
-
-                    // Try to find the current sequence in the terminating codes
-                    int sequenceLength = 2;
+                    var terminatingCodes = isWhite ? whiteTerminatingCodes : blackTerminatingCodes;
+                    var makeupCodes = isWhite ? whiteMakeupCodes : blackMakeupCodes;
                     bool sequenceFound = false;
-                    string currentSequence = "";
+                    int sequenceLength = 2;
+
                     while (!sequenceFound && local + sequenceLength <= line.Length)
                     {
-                        currentSequence = line.Substring(local, sequenceLength);
-                        if (terminatingCodes.ContainsValue(currentSequence))
+                        var currentSequence = line.Slice(local, sequenceLength).ToString();
+                        wasMakeup = false;
+                        wasBig = false;
+                        //if(bigCodes.TryGetValue(currentSequence, out int runLen))
+                        //{
+                        //    if (runLen <= cols)
+                        //    {
+
+                        //    }
+                        //}
+                        if (makeupCodes.TryGetValue(currentSequence, out int rle))
+                        { 
+                            if (rle <= cols)
+                            {
+                                //nasao makeup umnozak od 64
+                                for (int i = 0; i < rle; i++)
+                                {
+                                    if (row >= rows) break;
+                                    mat[row, col] = isWhite ? 0 : 1;
+                                    col++;
+                                    if (col >= cols)
+                                    {
+                                        col = 0;
+                                        row++;
+                                        if (row >= rows) break;
+                                    }
+                                }
+                                int termlenght = 2;
+                                local += sequenceLength;
+                                bool termFound=false;
+                                while (!termFound && local + termlenght <= line.Length)
+                                {
+                                    var termSequence = line.Slice(local, termlenght).ToString();
+                                    if (terminatingCodes.TryGetValue(termSequence, out int rlen))
+                                    {
+                                        for (int i = 0; i < rlen; i++)
+                                        {
+                                            if (row >= rows) break;
+                                            mat[row, col] = isWhite ? 0 : 1;
+                                            col++;
+                                            if (col >= cols)
+                                            {
+                                                col = 0;
+                                                row++;
+                                                if (row >= rows) break;
+                                            }
+                                        }
+                                        local += termlenght;
+                                        isWhite = !isWhite;
+                                        termFound = true;
+                                        sequenceFound = true;
+                                    }
+                                    else termlenght++;
+                                    
+                                }
+                                wasMakeup = true;
+                            }
+                           
+                            
+                        }
+                        if (terminatingCodes.TryGetValue(currentSequence, out int runLength) &&!wasMakeup)
                         {
+                            
+                            //if (wasMakeup) isWhite = !isWhite;
+                            for (int i = 0; i < runLength; i++)
+                            {
+                                if (row >= rows) break;
+                                mat[row, col] = isWhite ? 0 : 1;
+                                col++;
+                                if (col >= cols)
+                                {
+                                    col = 0;
+                                    row++;
+                                    if (row >= rows) break;
+                                }
+                            }
+                            local += sequenceLength;
+                            isWhite = !isWhite;
                             sequenceFound = true;
-                            //tmp[s] = currentSequence;
-                            //s++;
+                            //wasMakeup = false;
                         }
                         else
                         {
                             sequenceLength++;
-                            if (local + sequenceLength > line.Length) // Check if sequence is longer than column count
-                            {
-                                sequenceFound = true; // Treat this as invalid and move to the next position
-                            }
                         }
                     }
-
-                    if (sequenceFound)
-                    {
-                        // Decode the sequence and update matrix
-                        foreach (var entry in terminatingCodes)
-                        {
-                            if (entry.Value == currentSequence)
-                            {
-                                // Check if the key + current column exceeds cols
-                                if (col + entry.Key > cols)
-                                {
-                                    // Switch to black and backtrack
-                                    isWhite = false;
-                                    row++;
-                                    col = 0;
-                                }
-                                else
-                                {
-                                    // Update matrix based on whether it's white or black
-                                    for (int i = 0; i < entry.Key; i++)
-                                    {
-                                        if (row >= rows) break; // Prevent exceeding row bounds
-
-                                        mat[row, col] = isWhite ? 0 : 1;
-                                        col++;
-                                        if (col >= cols)
-                                        {
-                                            col = 0;
-                                            row++;
-                                            if (row >= rows) break; // Prevent exceeding row bounds
-                                        }
-                                    }
-                                }
-                                local += sequenceLength;
-                                isWhite = !isWhite; // Switch colors
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        break;
-                        // isWhite = !isWhite;
-                    }
+                    if (!sequenceFound) break;
                 }
                 r++;
             }
 
-        return mat;
-    }
-        
-       
+            return mat;
+
+        }
+
+
 
     }
 }

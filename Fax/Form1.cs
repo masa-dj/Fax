@@ -14,29 +14,29 @@ namespace Fax
 
         public int[,] bmpToMatrix(Bitmap bmp)
         {
-            int[,] mat = new int[bmp.Height, bmp.Width]; // Note the dimensions
+            int[,] mat = new int[bmp.Height, bmp.Width];
             Bitmap bw = Facsimile.toBW(bmp);
-            for (int i = 0; i < bmp.Height; i++) // Iterate over rows
+            for (int i = 0; i < bmp.Height; i++)
             {
-                for (int j = 0; j < bmp.Width; j++) // Iterate over columns
+                for (int j = 0; j < bmp.Width; j++)
                 {
-                    Color c = bw.GetPixel(j, i); // GetPixel(x, y)
-                    if (c.R == 0) mat[i, j] = 1; // Black
-                    else mat[i, j] = 0; // White
+                    Color c = bw.GetPixel(j, i);
+                    if (c.R == 0) mat[i, j] = 1; //crno
+                    else mat[i, j] = 0; //belo
                 }
             }
             return mat;
         }
         public Bitmap matrixToBMP(int[,] mat)
         {
-            Bitmap b = new Bitmap(mat.GetLength(0), mat.GetLength(1));
+            Bitmap b = new Bitmap(mat.GetLength(1), mat.GetLength(0));
 
             for (int i = 0; i < mat.GetLength(0); i++)
             {
                 for (int j = 0; j < mat.GetLength(1); j++)
                 {
-                    if (mat[i, j] == 0) b.SetPixel(i, j, Color.FromArgb(255, 255, 255)); //bela
-                    else b.SetPixel(i, j, Color.FromArgb(0, 0, 0)); //crna
+                    if (mat[i, j] == 0) b.SetPixel(j, i, Color.FromArgb(255, 255, 255)); //bela
+                    else b.SetPixel(j, i, Color.FromArgb(0, 0, 0)); //crna
                 }
             }
             return b;

@@ -48,9 +48,9 @@
             // 
             // pictureBox1
             // 
-            pictureBox1.Location = new Point(169, 211);
+            pictureBox1.Location = new Point(247, 204);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(553, 335);
+            pictureBox1.Size = new Size(954, 919);
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox1.TabIndex = 1;
             pictureBox1.TabStop = false;
@@ -67,9 +67,9 @@
             // 
             // pictureBox2
             // 
-            pictureBox2.Location = new Point(835, 186);
+            pictureBox2.Location = new Point(1363, 204);
             pictureBox2.Name = "pictureBox2";
-            pictureBox2.Size = new Size(630, 360);
+            pictureBox2.Size = new Size(954, 919);
             pictureBox2.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox2.TabIndex = 3;
             pictureBox2.TabStop = false;
@@ -78,7 +78,7 @@
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1647, 795);
+            ClientSize = new Size(2700, 1883);
             Controls.Add(pictureBox2);
             Controls.Add(button2);
             Controls.Add(pictureBox1);
