@@ -10,7 +10,7 @@ namespace Fax
     internal class Facsimile
     {
         //4 kodne tabele: terminating codes:bele i crne, i makeup codes:bele i crne za RLE iznad 63
-        //koje su predefinisane
+        //koje su predefinisane po standardu
 
         private static readonly Dictionary<int, string> WhiteTerminatingCodes = new Dictionary<int, string>
         {
@@ -76,8 +76,8 @@ namespace Fax
             { 2304, "000000010111" }, { 2368, "000000011100" }, { 2432, "000000011101" }, { 2496, "000000011110" },
             { 2560, "000000011111" }};
         private const string EOL = "000000000001";
-        //fax radi sa crnim i belim pikselima iskljucivo, ppa se slika pojadnostavljenja radi konvertuje u black and white
-        public static Bitmap toBW(Bitmap source)
+        //fax radi sa crnim i belim pikselima iskljucivo, pa se slika pojadnostavljenja radi konvertuje u black and white
+        private static Bitmap toBW(Bitmap source)
         {
             Bitmap BWbitmap = new Bitmap(source.Width, source.Height);
             for (int x = 0; x < source.Width; x++)
@@ -97,17 +97,44 @@ namespace Fax
             }
             return BWbitmap;
         }
-       
-
-        public string scanDocument(int[,] mat)
+        private int[,] bmpToMatrix(Bitmap bmp)
         {
+            int[,] mat = new int[bmp.Height, bmp.Width];
+            Bitmap bw = Facsimile.toBW(bmp);
+            for (int i = 0; i < bmp.Height; i++)
+            {
+                for (int j = 0; j < bmp.Width; j++)
+                {
+                    Color c = bw.GetPixel(j, i);
+                    if (c.R == 0) mat[i, j] = 1; //crno
+                    else mat[i, j] = 0; //belo
+                }
+            }
+            return mat;
+        }
+        private Bitmap matrixToBMP(int[,] mat)
+        {
+            Bitmap b = new Bitmap(mat.GetLength(1), mat.GetLength(0));
+
+            for (int i = 0; i < mat.GetLength(0); i++)
+            {
+                for (int j = 0; j < mat.GetLength(1); j++)
+                {
+                    if (mat[i, j] == 0) b.SetPixel(j, i, Color.FromArgb(255, 255, 255)); //bela
+                    else b.SetPixel(j, i, Color.FromArgb(0, 0, 0)); //crna
+                }
+            }
+            return b;
+        }
+        public string scanDocument(Bitmap input)
+        {
+            int[,] mat= bmpToMatrix(input);
             string code = "";
-            //bool first = true;
-            for(int i=0; i<mat.GetLength(0); i++) //za redove
+            for (int i = 0; i < mat.GetLength(0); i++) //za redove
             {
                 int br = 0;
                 int j = 0;
-                while(j <= mat.GetLength(1)-2)
+                while (j <= mat.GetLength(1) - 2)
                 {
 
                     if (mat[i, j] == mat[i, j + 1]) br++;
@@ -118,11 +145,11 @@ namespace Fax
                         if (mat[i, j] == 0) code += findCode(br, WhiteTerminatingCodes, WhiteMakeupCodes);
                         else code += findCode(br, BlackTerminatingCodes, BlackMakeupCodes);
                         br = 0;
-                       
+
                     }
                     j++;
                 }
-                if(j== mat.GetLength(1) - 1)
+                if (j == mat.GetLength(1) - 1)
                 {
                     //poslednji element
                     if (mat[i, j - 1] == mat[i, j])
@@ -137,13 +164,14 @@ namespace Fax
                         else code += findCode(1, BlackTerminatingCodes, BlackMakeupCodes);
                     }
                 }
-                
+
                 code += EOL;
-                
+
             }
             return code;
         }
-        public string findCode(int number, Dictionary<int, string> terminating, Dictionary<int, string> makeup)
+        
+        private string findCode(int number, Dictionary<int, string> terminating, Dictionary<int, string> makeup)
         {
             if(number<64)
             {
@@ -151,22 +179,19 @@ namespace Fax
             }
             else
             {
-                int makeupPart = number / 64 *64;
+                int makeupPart = number / 64 * 64;
                 int terminatingPart = number % 64;
                 return makeup[makeupPart] + terminating[terminatingPart];
             }
         }
-
-        public int[,] readFax(string code, int rows, int cols)
-    {
-
-            //lukin
+        public Bitmap readFax(string code, int rows, int cols)
+        {
 
             int[,] mat = new int[rows, cols];
             int row = 0, col = 0;
             int index = 0;
             int r = 0;
-
+            //kreiranje obratnih recnika radi lakseg nalazenja
             Dictionary<string, int> whiteTerminatingCodes = WhiteTerminatingCodes.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
             Dictionary<string, int> blackTerminatingCodes = BlackTerminatingCodes.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
             Dictionary<string, int> whiteMakeupCodes = WhiteMakeupCodes.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
@@ -184,7 +209,6 @@ namespace Fax
                 int local = 0;
                 bool isWhite = true;
                 bool wasMakeup = false;
-                bool wasBig = false;
 
                 while (local < line.Length)
                 {
@@ -192,21 +216,13 @@ namespace Fax
                     var makeupCodes = isWhite ? whiteMakeupCodes : blackMakeupCodes;
                     bool sequenceFound = false;
                     int sequenceLength = 2;
-
                     while (!sequenceFound && local + sequenceLength <= line.Length)
                     {
                         var currentSequence = line.Slice(local, sequenceLength).ToString();
                         wasMakeup = false;
-                        wasBig = false;
-                        //if(bigCodes.TryGetValue(currentSequence, out int runLen))
-                        //{
-                        //    if (runLen <= cols)
-                        //    {
-
-                        //    }
-                        //}
+                        //prvo trazi u makeup tabeli i odmah proverava i za follow up tabelu
                         if (makeupCodes.TryGetValue(currentSequence, out int rle))
-                        { 
+                        {
                             if (rle <= cols)
                             {
                                 //nasao makeup umnozak od 64
@@ -224,7 +240,7 @@ namespace Fax
                                 }
                                 int termlenght = 2;
                                 local += sequenceLength;
-                                bool termFound=false;
+                                bool termFound = false;
                                 while (!termFound && local + termlenght <= line.Length)
                                 {
                                     var termSequence = line.Slice(local, termlenght).ToString();
@@ -248,17 +264,14 @@ namespace Fax
                                         sequenceFound = true;
                                     }
                                     else termlenght++;
-                                    
+
                                 }
                                 wasMakeup = true;
                             }
-                           
-                            
                         }
-                        if (terminatingCodes.TryGetValue(currentSequence, out int runLength) &&!wasMakeup)
+                        //zatim, proveravamo u terminating 
+                        if (terminatingCodes.TryGetValue(currentSequence, out int runLength) && !wasMakeup)
                         {
-                            
-                            //if (wasMakeup) isWhite = !isWhite;
                             for (int i = 0; i < runLength; i++)
                             {
                                 if (row >= rows) break;
@@ -274,8 +287,8 @@ namespace Fax
                             local += sequenceLength;
                             isWhite = !isWhite;
                             sequenceFound = true;
-                            //wasMakeup = false;
                         }
+                        //nije nadjeno - gledamo vecu sekvencu
                         else
                         {
                             sequenceLength++;
@@ -285,12 +298,10 @@ namespace Fax
                 }
                 r++;
             }
-
-            return mat;
-
+            Bitmap output = matrixToBMP(mat);
+            return output;
         }
 
-
-
+       
     }
 }
